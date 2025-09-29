@@ -11,6 +11,8 @@ class Tournament:
         end_date,
         number_of_rounds=4,
         description="",
+        status="Not started",
+        players=None,
     ):
         self.name = name
         self.location = location
@@ -23,6 +25,8 @@ class Tournament:
         #To do- Vérifier où et comment gérer les scores
         #Is finish or not
         self.description = description
+        self.status = status  # "Not Started", "In Progress", "Finished"
+        self.players = players if players is not None else []
 
 
     def save_to_json(self):

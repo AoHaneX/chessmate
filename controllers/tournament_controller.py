@@ -1,6 +1,8 @@
 from models import tournament_model
 from views.views import TournamentView
-
+from models.tournament_model import Tournament
+import os
+import json
 class TournamentController:
 
     def __init__(self, tournament, view):
@@ -14,8 +16,10 @@ class TournamentController:
         start_date = self.view.ask_start_date()
         end_date = self.view.ask_end_date()
         description = self.view.ask_description()
+        rounds = self.view.ask_round()
+        status = "Not Started"
 
-        new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description)
+        new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description, rounds, status)
         self.tournament.append(new_tournament)
         new_tournament.save_to_json()
         return new_tournament
@@ -48,3 +52,41 @@ class TournamentController:
     def is_finished(self):
         """Check if the tournament is finished"""
         return self.tournament.is_finished()
+
+
+    def get_all_tournaments(self):
+        """Load all tournaments from JSON files and return them"""
+        folder_path = "./data/tournaments/"
+        loaded_tournaments = []
+
+        if os.path.exists(folder_path):
+            for filename in os.listdir(folder_path):
+                if filename.endswith(".json"):
+                    file_path = os.path.join(folder_path, filename)
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        try:
+                            tournament_data = json.load(f)
+                            tournament = Tournament(
+                                name=tournament_data["name"],
+                                location=tournament_data["location"],
+                                start_date=tournament_data["start_date"],
+                                end_date=tournament_data.get("end_date", None),
+                                number_of_rounds=tournament_data.get("number_of_rounds", 4),
+                                description=tournament_data.get("description", "")
+                            )
+                            status_order = {"Not Started": 0, "In Progress": 1, "Finished": 2}
+
+                            loaded_tournaments.sort(
+                                key=lambda t: status_order.get(getattr(t, "status", "Not Started"), 99)
+                            )
+                            
+                            loaded_tournaments.append(tournament)
+                        except json.JSONDecodeError:
+                            print(f"Error reading file {filename}")
+            return loaded_tournaments
+                    
+    def show_all_tournaments(self, tournaments):
+            """Display the given list of tournaments using the view"""
+            for t in tournaments:
+                self.view.display_tournament(t) 
+        

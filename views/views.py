@@ -3,12 +3,14 @@ class TournamentView:
     def display_tournament(self, tournament):
         print("\n=== Tournament Information ===")
         print(f"Name             : {tournament.name}")
+        print(f"Status           : {tournament.status}")
         print(f"Location         : {tournament.location}")
         print(f"Start date       : {tournament.start_date}")
         print(f"End date         : {tournament.end_date}")
         print(f"Number of rounds : {tournament.number_of_rounds}")
         print(f"Current round    : {tournament.current_round}")
-        print(f"Registered players : {len(tournament.players)}")
+        if tournament.players is not None:
+            print(f"Registered players : {len(tournament.players)}")
         print(f"Description      : {tournament.description}")
         print("================================\n")
 

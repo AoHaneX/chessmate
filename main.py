@@ -40,8 +40,8 @@ def main():
 
         elif choice == "2":
             player_manager.show_all_players()
-            #To do -Load all json& display players by alphabetical order
-
+            
+       
         elif choice == "3":
             # Create a new tournament
             tournament_manager.create_tournament()
@@ -51,9 +51,8 @@ def main():
 
         elif choice == "4":
             # Show all tournaments
-            for t in tournaments:
-                tournament_manager = tournament_controller.TournamentController(t, tournament_view)
-                tournament_manager._info()
+            loaded_tournaments = tournament_manager.get_all_tournaments()
+            tournament_manager.show_all_tournaments(loaded_tournaments)
 
         elif choice == "0":
             print("Goodbye!")
