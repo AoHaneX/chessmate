@@ -13,6 +13,10 @@ class TournamentView:
             print(f"Registered players : {len(tournament.players)}")
         print(f"Description      : {tournament.description}")
         print("================================\n")
+        
+    def display_tournament_simplified(self, tournament):
+        #print(f"{tournament.name} ({tournament.status})")
+        return f"{tournament.name} ({tournament.status})"
 
     def display_players(self, tournament):
         print("\n--- List of players ---")
@@ -29,7 +33,20 @@ class TournamentView:
                   f"| Start: {round_obj.start_date} "
                   f"| End: {round_obj.end_date if round_obj.end_date else 'ongoing'}")
         print("==========================\n")
+    
+    def display_management_menu(self, tournament):
+        """Show the tournament management menu"""
+        print(f"\n=== Managing Tournament: {tournament.name} ===")
+        print("1. Show tournament info")
+        print("2. Show players (alphabetical)")
+        print("3. Show players (by score)")
+        print("4. Add a round")
+        print("5. Show rounds")
+        print("0. Back to main menu")
 
+    def ask_management_choice(self):
+        return input("Your choice: ")
+    
     def ask_tournament_name(self):
         return input("Enter the tournament name: ")
 

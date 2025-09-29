@@ -24,6 +24,42 @@ class TournamentController:
         new_tournament.save_to_json()
         return new_tournament
     
+    def manage_tournament(self):
+        while True:
+            self.view.display_management_menu(self.tournament)
+            choice = self.view.ask_management_choice()
+
+            if choice == "1":
+                self.show_tournament_info()
+
+            elif choice == "2":
+                self.show_players(by_score=False)
+
+            elif choice == "3":
+                self.show_players(by_score=True)
+
+            elif choice == "4":
+                print("➡️ Add round: to be implemented")
+
+            elif choice == "5":
+                self.view.display_rounds(self.tournament)
+
+            elif choice == "0":
+                print("Returning to main menu...")
+                break
+
+            else:
+                print("⚠️ Invalid choice. Try again.")
+
+    # --- méthodes déjà existantes ---
+    def show_tournament_info(self):
+        self.view.display_tournament(self.tournament)
+
+    def show_players(self, by_score=False):
+        if by_score:
+            self.view.display_players_by_score(self.tournament)
+        else:
+            self.view.display_players(self.tournament)
     def add_player(self, player):
         """Add a player to the tournament"""
         self.tournament.add_player(player)
@@ -89,4 +125,8 @@ class TournamentController:
             """Display the given list of tournaments using the view"""
             for t in tournaments:
                 self.view.display_tournament(t) 
-        
+    def show_all_tournaments_with_index(self, tournaments):
+        """Display the given list of tournaments using the view"""
+        for i, t in enumerate(tournaments, start=1):
+            simple = self.view.display_tournament_simplified(t)
+            print(f"{i}. {simple}")

@@ -29,6 +29,7 @@ def main():
         print("2. Show all players")
         print("3. Create a new tournament")
         print("4. Show tournaments")
+        print("5. Manage a tournament (not implemented yet)")
         print("0. Exit")
 
         choice = input("Your choice: ")
@@ -39,7 +40,8 @@ def main():
             player_manager.add_player()
 
         elif choice == "2":
-            player_manager.show_all_players()
+            players = player_manager.get_all_players()
+            player_manager.show_all_players(players)
             
        
         elif choice == "3":
@@ -53,7 +55,30 @@ def main():
             # Show all tournaments
             loaded_tournaments = tournament_manager.get_all_tournaments()
             tournament_manager.show_all_tournaments(loaded_tournaments)
+        
+        elif choice == "5":
+            print("\n=== Tournament Management ===")
+            loaded_tournaments = tournament_manager.get_all_tournaments()
 
+            if not loaded_tournaments:
+                print("No tournaments available. Please create one first.")
+            else:
+                print("Available tournaments:")
+                tournament_manager.show_all_tournaments_with_index(loaded_tournaments)
+                try:
+                    selection = int(input("Select a tournament number: "))
+                    tournament = tournaments[selection - 1]
+                except (ValueError, IndexError):
+                    print("⚠️ Invalid choice.")
+                    continue
+                if not tournament:
+                    print("No tournament found with that number.")
+                    continue
+
+                # Attach controller for this tournament
+                tournament_manager.manage_tournament()
+
+                
         elif choice == "0":
             print("Goodbye!")
             break
