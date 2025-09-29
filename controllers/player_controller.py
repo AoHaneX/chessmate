@@ -22,11 +22,11 @@ class PlayerController:
         self.player.append(new_player)
         new_player.save_to_json()
         return new_player
-
-    def show_all_players(self):
-        """Display all players alphabetically (loaded from JSON files in data/players)"""
+    
+    
+    def get_all_players(self):
+        """Load all players from JSON files and return them sorted alphabetically"""
         folder_path = "./data/players/"
-
         loaded_players = []
 
         if os.path.exists(folder_path):
@@ -36,7 +36,6 @@ class PlayerController:
                     with open(file_path, "r", encoding="utf-8") as f:
                         try:
                             player_data = json.load(f)
-                            # Recreate a Player object
                             player = Player(
                                 first_name=player_data["first_name"],
                                 last_name=player_data["last_name"],
@@ -45,15 +44,15 @@ class PlayerController:
                                 ranking=player_data["ranking"],
                             )
                             loaded_players.append(player)
-                            self.view.display_all_players(loaded_players)
                         except json.JSONDecodeError:
-                            print(f"Error reading file {filename}")
+                            print(f"⚠️ Error reading file {filename}")
 
+        # Sort players alphabetically by last name, then first name
+        loaded_players.sort(key=lambda p: (p.last_name.lower(), p.first_name.lower()))
 
-"""
-    def show_all_players(self):
-        Display all players alphabetically
-        #To do - Récuperer les joueurs depuis les fichiers json
-        self.view.display_all_players(self.player)
-        """
-        
+        return loaded_players
+
+    def show_all_players(self, players):
+        """Display the given list of players using the view"""
+        self.view.display_all_players(players)
+    
