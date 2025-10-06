@@ -23,7 +23,10 @@ class PlayerController:
         new_player.save_to_json()
         return new_player
     
-    
+    def register_player(self, player):
+        """Register a player to the controller's player list"""
+        self.player.append(player)  
+        
     def get_all_players(self):
         """Load all players from JSON files and return them sorted alphabetically"""
         folder_path = "./data/players/"

@@ -38,10 +38,9 @@ class TournamentView:
         """Show the tournament management menu"""
         print(f"\n=== Managing Tournament: {tournament.name} ===")
         print("1. Show tournament info")
-        print("2. Show players (alphabetical)")
+        print("2. Manage players")
         print("3. Show players (by score)")
-        print("4. Add a round")
-        print("5. Show rounds")
+        print("4. Manage rounds - To be implemented")
         print("0. Back to main menu")
 
     def ask_management_choice(self):
@@ -63,10 +62,9 @@ class TournamentView:
         return input("Enter a description for the tournament: ")
     
     def ask_round(self):
-        
         return input("Enter the number of rounds for the tournament: ")
-    
-    
+
+
 class RoundView:
 
     def display_round(self, round_obj):
@@ -92,7 +90,8 @@ class RoundView:
 
     def ask_round_name(self):
         return input("Enter the round name (e.g., 'Round 1'): ")
-    
+
+
 class MatchView:
     """View for the Match model (console output)"""
 
@@ -130,7 +129,7 @@ class MatchView:
         print(f"{player1.first_name} {player1.last_name}: {score1} point(s)")
         print(f"{player2.first_name} {player2.last_name}: {score2} point(s)")
         print("---------------------\n")
-        
+
 class PlayerView:
 
     def display_player(self, player):

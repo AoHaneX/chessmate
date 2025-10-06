@@ -16,8 +16,7 @@ def main():
 
     # Initialize controllers
     player_manager = player_controller.PlayerController(players, player_view)
-    tournament_manager = tournament_controller.TournamentController(tournaments, tournament_view)
-            
+    tournament_manager = tournament_controller.TournamentController(tournaments, tournament_view, player_manager)          
     #tournament_manager = tournament_controller.TournamentController(tournaments, tournament_view)
     #round_manager = round_controller.RoundController(rounds, round_view) #Not used yet and here
     #match_manager = match_controller.MatchController(matches, match_view) #Not used yet and here
@@ -25,7 +24,7 @@ def main():
     # Menu loop
     while True:
         print("\n=== Chess Tournament Menu ===")
-        print("1. Add a new player")
+        print("1. Add a new player to the club")
         print("2. Show all players")
         print("3. Create a new tournament")
         print("4. Show tournaments")
@@ -42,20 +41,19 @@ def main():
         elif choice == "2":
             players = player_manager.get_all_players()
             player_manager.show_all_players(players)
-            
-       
+
         elif choice == "3":
             # Create a new tournament
             tournament_manager.create_tournament()
-            tournaments.append(tournament_manager)
-            
+
             #To do - Faire une boucle pour ajouter des rounds et des matchs et des joueurs
 
         elif choice == "4":
             # Show all tournaments
             loaded_tournaments = tournament_manager.get_all_tournaments()
+            print("UWUUUUUUUUUUUU",loaded_tournaments)
             tournament_manager.show_all_tournaments(loaded_tournaments)
-        
+
         elif choice == "5":
             print("\n=== Tournament Management ===")
             loaded_tournaments = tournament_manager.get_all_tournaments()
@@ -67,18 +65,16 @@ def main():
                 tournament_manager.show_all_tournaments_with_index(loaded_tournaments)
                 try:
                     selection = int(input("Select a tournament number: "))
-                    tournament = tournaments[selection - 1]
+                    tournament = loaded_tournaments[selection - 1]
+                    print(f"Selected tournament: {tournament.name}")
+                    # Attach controller for this tournament
+                    tournament_manager.manage_tournament(tournament)    
                 except (ValueError, IndexError):
-                    print("⚠️ Invalid choice.")
+                    print("Invalid choice.")
                     continue
                 if not tournament:
                     print("No tournament found with that number.")
                     continue
-
-                # Attach controller for this tournament
-                tournament_manager.manage_tournament()
-
-                
         elif choice == "0":
             print("Goodbye!")
             break

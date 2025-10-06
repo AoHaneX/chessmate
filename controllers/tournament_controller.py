@@ -3,11 +3,14 @@ from views.views import TournamentView
 from models.tournament_model import Tournament
 import os
 import json
+
 class TournamentController:
 
-    def __init__(self, tournament, view):
+    def __init__(self, tournament, view, player_manager):
         self.tournament = tournament
         self.view = view
+        self.player_manager = player_manager
+        self.all_players = None  # To be set when managing players
 
     def create_tournament(self):
         """Create a new tournament"""
@@ -20,60 +23,85 @@ class TournamentController:
         status = "Not Started"
 
         new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description, rounds, status)
-        self.tournament.append(new_tournament)
         new_tournament.save_to_json()
         return new_tournament
-    
-    def manage_tournament(self):
+
+    def manage_tournament(self, tournament):
         while True:
-            self.view.display_management_menu(self.tournament)
+            self.view.display_management_menu(tournament)
             choice = self.view.ask_management_choice()
 
             if choice == "1":
-                self.show_tournament_info()
+                # Display tournament info
+                self.show_tournament_info(tournament)
 
             elif choice == "2":
-                self.show_players(by_score=False)
+                # Manage players
+                self.manage_players()
 
             elif choice == "3":
-                self.show_players(by_score=True)
-
+                # Show players by score
+                self.show_players(tournament, by_score=True)
+                
             elif choice == "4":
-                print("➡️ Add round: to be implemented")
-
-            elif choice == "5":
-                self.view.display_rounds(self.tournament)
+                # Manage rounds
+                print("To be implemented")
 
             elif choice == "0":
                 print("Returning to main menu...")
                 break
 
             else:
-                print("⚠️ Invalid choice. Try again.")
+                print("Invalid choice. Try again.")
 
-    # --- méthodes déjà existantes ---
-    def show_tournament_info(self):
-        self.view.display_tournament(self.tournament)
+    def manage_players(self):
+        while True:
+            print("\n--- Player Management ---")
+            print("1. Add player to tournament")
+            print("2. Show tournament players")
+            print("0. Back")
 
-    def show_players(self, by_score=False):
-        if by_score:
-            self.view.display_players_by_score(self.tournament)
-        else:
-            self.view.display_players(self.tournament)
-    def add_player(self, player):
+            choice = input("Your choice: ")
+
+            if choice == "1":
+                print("\nAvailable Players:")
+                if self.all_players is None:
+                    self.all_players = self.player_manager.get_all_players()
+                    for i, p in enumerate(self.all_players, start=1):
+                        print(f"{i}. {p.first_name} {p.last_name} ({p.national_id})")
+
+                pid = input("Enter national_id of the player to add: ")
+                player = next((pl for pl in self.all_players if pl.national_id == pid), None)                  
+                if player:
+                    self.tournament.register_player(player)
+                    self.all_players.remove(player)
+                    print(f"Player {player.first_name} {player.last_name} added.")
+                else:
+                    print("Player not found.")
+                self.save_tournament(self.tournament.name)
+
+            elif choice == "2":
+                self.show_players(tournament=self.tournament)
+
+            elif choice == "0":
+                break
+
+    def register_player(self, player):
+        print("PLAAAAAYAAAAAAAAAAAAAAAa")
         """Add a player to the tournament"""
-        self.tournament.add_player(player)
 
-    def show_tournament_info(self):
+    def show_tournament_info(self, tournament):
         """Display basic tournament info"""
-        self.view.display_tournament(self.tournament)
+        self.view.display_tournament(tournament)
 
-    def show_players(self, by_score=False):
+    def show_players(self, tournament, by_score=False):
         """Display tournament players"""
+        
+        #To do
         if by_score:
-            self.view.display_players_by_score(self.tournament)
+            self.view.display_players_by_score(tournament)
         else:
-            self.view.display_players(self.tournament)
+            self.view.display_players(tournament)
 
     def add_round(self, round_obj):
         """Add a round to the tournament"""
@@ -88,7 +116,6 @@ class TournamentController:
     def is_finished(self):
         """Check if the tournament is finished"""
         return self.tournament.is_finished()
-
 
     def get_all_tournaments(self):
         """Load all tournaments from JSON files and return them"""
@@ -110,23 +137,47 @@ class TournamentController:
                                 number_of_rounds=tournament_data.get("number_of_rounds", 4),
                                 description=tournament_data.get("description", "")
                             )
+                            loaded_tournaments.append(tournament)
                             status_order = {"Not Started": 0, "In Progress": 1, "Finished": 2}
-
                             loaded_tournaments.sort(
                                 key=lambda t: status_order.get(getattr(t, "status", "Not Started"), 99)
-                            )
+                            )                         
+                            tournament.status = tournament_data.get("status", "Not Started")
+                            print("DEBUG loaded:", [t.name for t in loaded_tournaments])
                             
-                            loaded_tournaments.append(tournament)
                         except json.JSONDecodeError:
                             print(f"Error reading file {filename}")
+                            
             return loaded_tournaments
-                    
+
     def show_all_tournaments(self, tournaments):
-            """Display the given list of tournaments using the view"""
-            for t in tournaments:
-                self.view.display_tournament(t) 
+        """Display the given list of tournaments using the view"""
+        print("======List of Tournaments======")
+        for t in tournaments:
+            self.view.display_tournament(t)
+
     def show_all_tournaments_with_index(self, tournaments):
         """Display the given list of tournaments using the view"""
+        print("======List of Tournaments======")
         for i, t in enumerate(tournaments, start=1):
-            simple = self.view.display_tournament_simplified(t)
+            simple = self.view.display_tournament_simplified(t)           
             print(f"{i}. {simple}")
+
+    def save_tournament(self, name):
+        name = "tournament_" + name + "_" + ".json"
+        print("Le nom du tournoi est : ", name)
+        file_path = "./data/tournaments/" + name
+        tournaments = self.get_data(file_path)
+
+        # Check if the tournament already exists
+        updated = False
+        for t in tournaments:
+            if t["name"] == self.tournament.name:
+                t.update(self.tournament.to_dict())
+                updated = True
+                break
+
+        if not updated:
+            tournaments.append(self.tournament.to_dict())
+
+        self.update_jsons(file_path, tournaments)
