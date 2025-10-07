@@ -1,6 +1,7 @@
 from models import tournament_model
 from views.views import TournamentView
 from models.tournament_model import Tournament
+from utils.json_manager import update_jsons, get_data_from_file
 import os
 import json
 
@@ -21,7 +22,6 @@ class TournamentController:
         description = self.view.ask_description()
         rounds = self.view.ask_round()
         status = "Not Started"
-
         new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description, rounds, status)
         new_tournament.save_to_json()
         return new_tournament
@@ -37,7 +37,7 @@ class TournamentController:
 
             elif choice == "2":
                 # Manage players
-                self.manage_players()
+                self.manage_players(tournament)
 
             elif choice == "3":
                 # Show players by score
@@ -54,7 +54,7 @@ class TournamentController:
             else:
                 print("Invalid choice. Try again.")
 
-    def manage_players(self):
+    def manage_players(self, tournament):
         while True:
             print("\n--- Player Management ---")
             print("1. Add player to tournament")
@@ -73,7 +73,7 @@ class TournamentController:
                 pid = input("Enter national_id of the player to add: ")
                 player = next((pl for pl in self.all_players if pl.national_id == pid), None)                  
                 if player:
-                    self.tournament.register_player(player)
+                    self.register_player(player)
                     self.all_players.remove(player)
                     print(f"Player {player.first_name} {player.last_name} added.")
                 else:
@@ -87,7 +87,7 @@ class TournamentController:
                 break
 
     def register_player(self, player):
-        print("PLAAAAAYAAAAAAAAAAAAAAAa")
+        print("To do")
         """Add a player to the tournament"""
 
     def show_tournament_info(self, tournament):
@@ -167,7 +167,7 @@ class TournamentController:
         name = "tournament_" + name + "_" + ".json"
         print("Le nom du tournoi est : ", name)
         file_path = "./data/tournaments/" + name
-        tournaments = self.get_data(file_path)
+        tournaments = self.get_data_from_file(file_path)
 
         # Check if the tournament already exists
         updated = False
@@ -181,3 +181,23 @@ class TournamentController:
             tournaments.append(self.tournament.to_dict())
 
         self.update_jsons(file_path, tournaments)
+
+    def save_to_json(self):
+            name = "tournament_" + self.name + "_" + ".json"
+            file_path = "./data/tournaments/" + name
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            tournament_data = {
+                    "name": self.name,
+                    "location": self.location,
+                    "start_date": self.start_date,
+                    "end_date": self.end_date,
+                    "number_of_rounds": self.number_of_rounds,
+                    "description": self.description,
+                    "current_round": self.current_round,
+                    "status": self.status
+                    }
+            with open(file_path, 'w') as json_file:
+                json.dump(tournament_data, json_file)
+                
+                
+

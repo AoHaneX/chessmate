@@ -28,7 +28,7 @@ def main():
         print("2. Show all players")
         print("3. Create a new tournament")
         print("4. Show tournaments")
-        print("5. Manage a tournament (not implemented yet)")
+        print("5. Manage a tournament")
         print("0. Exit")
 
         choice = input("Your choice: ")
@@ -51,7 +51,6 @@ def main():
         elif choice == "4":
             # Show all tournaments
             loaded_tournaments = tournament_manager.get_all_tournaments()
-            print("UWUUUUUUUUUUUU",loaded_tournaments)
             tournament_manager.show_all_tournaments(loaded_tournaments)
 
         elif choice == "5":
@@ -68,7 +67,10 @@ def main():
                     tournament = loaded_tournaments[selection - 1]
                     print(f"Selected tournament: {tournament.name}")
                     # Attach controller for this tournament
-                    tournament_manager.manage_tournament(tournament)    
+                    chosen_tournament_controller = tournament_controller.TournamentController(
+                        tournament, tournament_view, player_manager
+                    )
+                    chosen_tournament_controller.manage_tournament(tournament)
                 except (ValueError, IndexError):
                     print("Invalid choice.")
                     continue
