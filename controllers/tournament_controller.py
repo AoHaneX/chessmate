@@ -1,6 +1,7 @@
 from models import tournament_model
 from views.views import TournamentView
 from models.tournament_model import Tournament
+from models.player_model import Player
 from utils.json_manager import update_jsons, get_data_from_file
 import os
 import json
@@ -87,17 +88,15 @@ class TournamentController:
             return
         for i, p in enumerate(self.all_players, start=1):
             print(f"{i}. {p.first_name} {p.last_name} ({p.national_id})")
-        pid = input("Enter national_id of the player to add: ")
+        pid = input("Enter national_id of the player to add: ").strip()
         player = next((pl for pl in self.all_players if pl.national_id == pid), None)
         if not player:
             print("Player not found")
-            
-        player_dict = player.to_dict()
-        if any(p["national_id"] == player_dict["national_id"] for p in self.tournament.players):
-            print(f"Player {player.first_name} {player.last_name} is already registered.")
-            return       
-        self.tournament.players.append(player.to_dict())
-        print("JOUEEEEUR:", self.tournament.players)
+        if any(((p.get("national_id") if isinstance(p, dict) else getattr(p, "national_id", None) if hasattr(p, "national_id") else str(p)) == player.national_id) for p in self.tournament.players):
+            print("Player already registered in this tournament.")
+            return
+        self.tournament.players.append(player)
+        #self.tournament.save_to_json()
         self.save_tournament(self.tournament.name)
 
         print(f"Player {player.first_name} {player.last_name} added to tournament '{self.tournament.name}'.")
@@ -112,15 +111,19 @@ class TournamentController:
         """
         #Convert dict to Player objects if necessary
         player_object = []
+        all_players = self.all_players or self.player_manager.get_all_players()
         for p in tournament.players:
             if hasattr(p, "last_name"):
                 player_object.append(p)
             elif isinstance(p, dict):
                 # Adapter selon la signature de Player
-                player_object.append(self.player_manager.dict_to_player(p))
+                player_object.append(Player(**p))
             else:
-                print("Unknown player format:", p)
-        
+                found = next((pl for pl in all_players if pl.national_id == str(p)), None)
+                if found:
+                    player_object.append(found)
+                else:
+                    print(f"Unknown player format: {p}")
         if by_score:
             self.view.display_players_by_score(tournament, players=player_object)
         else:
@@ -191,35 +194,17 @@ class TournamentController:
     def save_tournament(self, name):
         file_path = self._get_tournament_path()
         tournaments = get_data_from_file(file_path)
-        # Check if the tournament already exists
+        # Si le fichier contient un seul tournoi (dict), on le transforme en liste
+        if tournaments and isinstance(tournaments, dict):
+            tournaments = [tournaments]
+        if not tournaments or not isinstance(tournaments, list):
+            tournaments = []
         updated = False
-        if not tournaments:
-            print("No tournaments found")
-            return
-        for t in tournaments:
+        for idx, t in enumerate(tournaments):
             if isinstance(t, dict) and t.get("name") == self.tournament.name:
-                t.update()
-            updated = True
-
+                tournaments[idx] = self.tournament.to_dict()
+                updated = True
+                break
         if not updated:
             tournaments.append(self.tournament.to_dict())
-
         update_jsons(file_path, tournaments)
-
-    def save_to_json(self):
-        file_path = self._get_tournament_path()
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        tournament_data = {
-                "name": self.name,
-                "location": self.location,
-                "start_date": self.start_date,
-                "end_date": self.end_date,
-                "number_of_rounds": self.number_of_rounds,
-                "description": self.description,
-                "current_round": self.current_round,
-                "status": self.status
-                }
-        with open(file_path, 'w') as json_file:
-            json.dump(tournament_data, json_file)
-
-    

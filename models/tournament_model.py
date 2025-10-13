@@ -42,11 +42,10 @@ class Tournament:
             "description": self.description,
             "status": self.status,
         }
-       
+       #Maybe change where it is
     def save_to_json(self):
         """Save tournament data to a JSON file"""
-        name = "tournament_" + self.name + "_" + ".json"
-        file_path = "./data/tournaments/" + name
+        file_path = self._get_tournament_path()
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         tournament_data = {
             "name": self.name,
