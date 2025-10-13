@@ -4,6 +4,7 @@ from models.player_model import Player
 import os
 import json
 
+
 class PlayerController:
 
     def __init__(self, player, view):
@@ -26,7 +27,7 @@ class PlayerController:
     def register_player(self, player):
         """Register a player to the controller's player list"""
         self.player.append(player)  
-        
+      
     def get_all_players(self):
         """Load all players from JSON files and return them sorted alphabetically"""
         folder_path = "./data/players/"

@@ -5,8 +5,8 @@ from utils.json_manager import update_jsons, get_data_from_file
 import os
 import json
 
-class TournamentController:
 
+class TournamentController:
     def __init__(self, tournament, view, player_manager):
         self.tournament = tournament
         self.view = view
@@ -25,6 +25,10 @@ class TournamentController:
         new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description, rounds, status)
         new_tournament.save_to_json()
         return new_tournament
+
+    def _get_tournament_path(self):
+        #name = self.tournament.name.replace(" ", "_")
+        return f"./data/tournaments/tournament_{self.tournament.name}_.json"
 
     def manage_tournament(self, tournament):
         while True:
@@ -64,21 +68,7 @@ class TournamentController:
             choice = input("Your choice: ")
 
             if choice == "1":
-                print("\nAvailable Players:")
-                if self.all_players is None:
-                    self.all_players = self.player_manager.get_all_players()
-                    for i, p in enumerate(self.all_players, start=1):
-                        print(f"{i}. {p.first_name} {p.last_name} ({p.national_id})")
-
-                pid = input("Enter national_id of the player to add: ")
-                player = next((pl for pl in self.all_players if pl.national_id == pid), None)                  
-                if player:
-                    self.register_player(player)
-                    self.all_players.remove(player)
-                    print(f"Player {player.first_name} {player.last_name} added.")
-                else:
-                    print("Player not found.")
-                self.save_tournament(self.tournament.name)
+                self.register_player()
 
             elif choice == "2":
                 self.show_players(tournament=self.tournament)
@@ -86,22 +76,55 @@ class TournamentController:
             elif choice == "0":
                 break
 
-    def register_player(self, player):
-        print("To do")
-        """Add a player to the tournament"""
+    def register_player(self):
+        """Display the list of available players, allow user to select one,
+    and add them to the tournament if not already registered."""
+        print("\nAvailable Players:")
+        if self.all_players is None:
+            self.all_players = self.player_manager.get_all_players()
+        if not self.all_players:
+            print("No available players found.")
+            return
+        for i, p in enumerate(self.all_players, start=1):
+            print(f"{i}. {p.first_name} {p.last_name} ({p.national_id})")
+        pid = input("Enter national_id of the player to add: ")
+        player = next((pl for pl in self.all_players if pl.national_id == pid), None)
+        if not player:
+            print("Player not found")
+            
+        player_dict = player.to_dict()
+        if any(p["national_id"] == player_dict["national_id"] for p in self.tournament.players):
+            print(f"Player {player.first_name} {player.last_name} is already registered.")
+            return       
+        self.tournament.players.append(player.to_dict())
+        print("JOUEEEEUR:", self.tournament.players)
+        self.save_tournament(self.tournament.name)
+
+        print(f"Player {player.first_name} {player.last_name} added to tournament '{self.tournament.name}'.")
 
     def show_tournament_info(self, tournament):
         """Display basic tournament info"""
         self.view.display_tournament(tournament)
 
     def show_players(self, tournament, by_score=False):
-        """Display tournament players"""
+        """
+        Display tournament players
+        """
+        #Convert dict to Player objects if necessary
+        player_object = []
+        for p in tournament.players:
+            if hasattr(p, "last_name"):
+                player_object.append(p)
+            elif isinstance(p, dict):
+                # Adapter selon la signature de Player
+                player_object.append(self.player_manager.dict_to_player(p))
+            else:
+                print("Unknown player format:", p)
         
-        #To do
         if by_score:
-            self.view.display_players_by_score(tournament)
+            self.view.display_players_by_score(tournament, players=player_object)
         else:
-            self.view.display_players(tournament)
+            self.view.display_players(tournament, players=player_object)
 
     def add_round(self, round_obj):
         """Add a round to the tournament"""
@@ -129,22 +152,24 @@ class TournamentController:
                     with open(file_path, "r", encoding="utf-8") as f:
                         try:
                             tournament_data = json.load(f)
-                            tournament = Tournament(
-                                name=tournament_data["name"],
-                                location=tournament_data["location"],
-                                start_date=tournament_data["start_date"],
-                                end_date=tournament_data.get("end_date", None),
-                                number_of_rounds=tournament_data.get("number_of_rounds", 4),
-                                description=tournament_data.get("description", "")
-                            )
-                            loaded_tournaments.append(tournament)
-                            status_order = {"Not Started": 0, "In Progress": 1, "Finished": 2}
-                            loaded_tournaments.sort(
-                                key=lambda t: status_order.get(getattr(t, "status", "Not Started"), 99)
-                            )                         
-                            tournament.status = tournament_data.get("status", "Not Started")
-                            print("DEBUG loaded:", [t.name for t in loaded_tournaments])
-                            
+                            if isinstance(tournament_data, list):
+                                print("Tournament data is a list, expected a dict. Skipping.")
+                                #To DO- Transform list to dict
+                            elif isinstance(tournament_data, dict):
+                                tournament = Tournament(
+                                    name=tournament_data["name"],
+                                    location=tournament_data["location"],
+                                    start_date=tournament_data["start_date"],
+                                    end_date=tournament_data.get("end_date", None),
+                                    number_of_rounds=tournament_data.get("number_of_rounds", 4),
+                                    description=tournament_data.get("description", "")
+                                )
+                                tournament.status = tournament_data.get("status")
+                                tournament.current_round = tournament_data.get("current_round", 0)
+                                tournament.players = tournament_data.get("players", [])
+                                tournament.rounds = tournament_data.get("rounds", [])
+                                loaded_tournaments.append(tournament)    
+                                                      
                         except json.JSONDecodeError:
                             print(f"Error reading file {filename}")
                             
@@ -164,40 +189,37 @@ class TournamentController:
             print(f"{i}. {simple}")
 
     def save_tournament(self, name):
-        name = "tournament_" + name + "_" + ".json"
-        print("Le nom du tournoi est : ", name)
-        file_path = "./data/tournaments/" + name
-        tournaments = self.get_data_from_file(file_path)
-
+        file_path = self._get_tournament_path()
+        tournaments = get_data_from_file(file_path)
         # Check if the tournament already exists
         updated = False
+        if not tournaments:
+            print("No tournaments found")
+            return
         for t in tournaments:
-            if t["name"] == self.tournament.name:
-                t.update(self.tournament.to_dict())
-                updated = True
-                break
+            if isinstance(t, dict) and t.get("name") == self.tournament.name:
+                t.update()
+            updated = True
 
         if not updated:
             tournaments.append(self.tournament.to_dict())
 
-        self.update_jsons(file_path, tournaments)
+        update_jsons(file_path, tournaments)
 
     def save_to_json(self):
-            name = "tournament_" + self.name + "_" + ".json"
-            file_path = "./data/tournaments/" + name
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            tournament_data = {
-                    "name": self.name,
-                    "location": self.location,
-                    "start_date": self.start_date,
-                    "end_date": self.end_date,
-                    "number_of_rounds": self.number_of_rounds,
-                    "description": self.description,
-                    "current_round": self.current_round,
-                    "status": self.status
-                    }
-            with open(file_path, 'w') as json_file:
-                json.dump(tournament_data, json_file)
-                
-                
+        file_path = self._get_tournament_path()
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        tournament_data = {
+                "name": self.name,
+                "location": self.location,
+                "start_date": self.start_date,
+                "end_date": self.end_date,
+                "number_of_rounds": self.number_of_rounds,
+                "description": self.description,
+                "current_round": self.current_round,
+                "status": self.status
+                }
+        with open(file_path, 'w') as json_file:
+            json.dump(tournament_data, json_file)
 
+    

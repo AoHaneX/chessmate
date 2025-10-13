@@ -18,9 +18,11 @@ class TournamentView:
         #print(f"{tournament.name} ({tournament.status})")
         return f"{tournament.name} ({tournament.status})"
 
-    def display_players(self, tournament):
+    def display_players(self, tournament, players=None):
         print("\n--- List of players ---")
-        for i, player in enumerate(sorted(tournament.players, key=lambda p: p.last_name), start=1):
+        if players is None:
+            players = tournament.players
+        for i, player in enumerate(sorted(players, key=lambda p: p.last_name), start=1):
             print(f"{i}. {player.first_name} {player.last_name} "
                   f"(National ID: {player.national_id}, Ranking: {player.ranking})")
         print("-------------------------\n")
@@ -141,7 +143,7 @@ class PlayerView:
         print("================================\n")
 
     def display_all_players(self, players):
-        print("\n--- List of players (alphabetical order) ---")
+        print("\n--- List of players (alphabetical order) ---")      
         for i, player in enumerate(sorted(players, key=lambda p: (p.last_name, p.first_name)), start=1):
             print(f"{i}. {player.first_name} {player.last_name} "
                   f"(National ID: {player.national_id}, Ranking: {player.ranking})")
