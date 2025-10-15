@@ -40,4 +40,20 @@ The program is standalone, offline, and uses JSON files for data persistence.
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-username/ProjetEchec.git
-   cd ProjetEchec
+   cd ProjetEchec```
+
+ ---
+  
+##  🔍 Code Quality Check
+
+-To check the code style with Flake8, run the following command from the project root:
+
+```flake8```
+
+-To generate a simple text report:
+```
+mkdir -p flake8_rapport
+flake8 --output-file flake8_rapport/flake8_report.txt
+```
+
+The report will be saved in flake8_rapport/flake8_report.txt.
