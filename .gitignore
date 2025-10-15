@@ -1,4 +1,3 @@
-# Ignore all JSON files in the data/players directory
 data/players/*.json
 data/tournaments/*.json
 flake8_rapport/*.html
