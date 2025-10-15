@@ -6,6 +6,7 @@ import os
 def update_jsons(file_path, data):
     """Update the JSON file at the given path with the provided data"""
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    print(f"Updating JSON file at: {file_path}")
     with open(file_path, "w", encoding="utf-8") as json_file:
         json.dump(data, json_file, indent=4, ensure_ascii=False)
 

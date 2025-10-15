@@ -92,6 +92,7 @@ class TournamentController:
         player = next((pl for pl in self.all_players if pl.national_id == pid), None)
         if not player:
             print("Player not found")
+            return
         if any(((p.get("national_id") if isinstance(p, dict) else getattr(p, "national_id", None) if hasattr(p, "national_id") else str(p)) == player.national_id) for p in self.tournament.players):
             print("Player already registered in this tournament.")
             return
@@ -193,18 +194,4 @@ class TournamentController:
 
     def save_tournament(self, name):
         file_path = self._get_tournament_path()
-        tournaments = get_data_from_file(file_path)
-        # Si le fichier contient un seul tournoi (dict), on le transforme en liste
-        if tournaments and isinstance(tournaments, dict):
-            tournaments = [tournaments]
-        if not tournaments or not isinstance(tournaments, list):
-            tournaments = []
-        updated = False
-        for idx, t in enumerate(tournaments):
-            if isinstance(t, dict) and t.get("name") == self.tournament.name:
-                tournaments[idx] = self.tournament.to_dict()
-                updated = True
-                break
-        if not updated:
-            tournaments.append(self.tournament.to_dict())
-        update_jsons(file_path, tournaments)
+        update_jsons(file_path, self.tournament.to_dict())
