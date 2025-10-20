@@ -1,4 +1,7 @@
+import random
+from re import Match
 from models import tournament_model
+from models.round_model import Round
 from views.views import TournamentView, PlayerView
 from models.tournament_model import Tournament
 from models.player_model import Player
@@ -13,6 +16,7 @@ class TournamentController:
         self.view = view
         self.player_manager = player_manager
         self.all_players = None  # To be set when managing players
+        self.round_generated = False
 
     def create_tournament(self):
         """Create a new tournament"""
@@ -124,32 +128,42 @@ class TournamentController:
     def add_round(self, round_obj):
         """Add a round to the tournament"""
         self.tournament.add_round(round_obj)
-
-    def generate_round_robin_pairs(self, tournament):
-        """
-        Generate all unique pairs of players for a round-robin tournament.
-        Returns:
-        list[list[tuple]]: List of rounds, each containing match pairs (player1, player2).
-        """
+    
+    def generate_round_and_pairs(players):
         pairs = []
-        all_players = self.all_players or self.player_manager.get_all_players()
-        num_players = len(all_players)
-
-        # Add a bye (None) if the number of players is odd
-        if num_players % 2 != 0:
-            all_players.append(None)
-            num_players += 1
-        for i in range(num_players - 1):
+        player_list = players.copy()
+        total_players = len(player_list)
+        if total_players % 2 != 0:
+            player_list.append(None)
+        random.shuffle(player_list)
+         # Generate one round per player (minus one)
+        for i in range(total_players - 1):
             round_pairs = []
-            for j in range(num_players // 2):
-                p1 = all_players[j]
-                p2 = all_players[-j - 1]
+            for j in range(total_players // 2):
+                p1 = player_list[j]
+                p2 = player_list[-j - 1]
+                # Skip the "None" (bye) player
                 if p1 is not None and p2 is not None:
                     round_pairs.append((p1, p2))
             pairs.append(round_pairs)
-            all_players.insert(1, all_players.pop())
+            player_list.insert(1, player_list.pop())
         return pairs
 
+    def create_rounds_from_pairs(self, tournament):
+        if self.rounds_generated is True:
+            print("Rounds have already been generated.")
+        self.rounds_generated = True
+        all_pairs = self.generate_round_and_pairs(tournament.players)
+        for i, round_pairs in enumerate(all_pairs, start=1):
+            round_name = f"Round {i}"
+            new_round = Round(name=round_name)
+            for player1, player2 in round_pairs:
+                # Create Match object with initial scores set to 0
+                match = Match(([player1, 0.0], [player2, 0.0]))
+                new_round.add_match(match)
+            tournament.rounds.append(new_round)
+        print(f"{len(tournament.rounds)} rounds successfully created.\n")
+    
     def current_round(self):
         """Return the current round object, or None if none exists"""
         if self.tournament.rounds:
