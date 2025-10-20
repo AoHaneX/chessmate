@@ -2,9 +2,11 @@ import random
 from re import Match
 from models import tournament_model
 from models.round_model import Round
-from views.views import TournamentView, PlayerView
+from views.views import MatchView, TournamentView, PlayerView
 from models.tournament_model import Tournament
 from models.player_model import Player
+from models.match_model import Match
+from models.round_model import Round
 from utils.json_manager import update_jsons, get_data_from_file
 import os
 import json
@@ -16,7 +18,8 @@ class TournamentController:
         self.view = view
         self.player_manager = player_manager
         self.all_players = None  # To be set when managing players
-        self.round_generated = False
+        self.rounds_generated = False
+        self.number_of_rounds = 0
 
     def create_tournament(self):
         """Create a new tournament"""
@@ -54,7 +57,7 @@ class TournamentController:
                 
             elif choice == "4":
                 # Manage rounds
-                print("To be implemented")
+                self.manage_rounds(tournament)
 
             elif choice == "0":
                 print("Returning to main menu...")
@@ -73,6 +76,63 @@ class TournamentController:
             elif choice == "2":
                 self.show_players(tournament=self.tournament)
 
+            elif choice == "0":
+                break
+            
+    def manage_rounds(self, tournament):
+        while True:
+            choice = self.view.ask_round_management_choice()
+
+            if choice == "1":
+                # Generate rounds and matches
+                if self.rounds_generated:
+                    print("Rounds have already been generated.")
+                self.create_rounds_from_pairs(tournament)
+                    
+
+            elif choice == "2":
+                # Show all existing rounds
+                self.view.display_rounds(tournament)
+
+            elif choice == "3":
+                # Show matches of a selected round
+                if not tournament.rounds:
+                    print("No rounds available yet.")
+                    continue
+                self.view.display_rounds(tournament)
+                try:
+                    round_index = int(input("Enter the round number to display: ")) - 1
+                    if 0 <= round_index < len(tournament.rounds):
+                        round_obj = tournament.rounds[round_index]
+                        self.view.display_matches(round_obj)
+                    else:
+                        print("Invalid round number.")
+                except ValueError:
+                    print("Please enter a valid number.")
+                
+            elif choice == "4":
+                # Record results for a round
+                if not tournament.rounds:
+                    print("No rounds available yet.")
+                try:
+                    round_index = int(input("Enter the round number to record results for: ")) - 1
+                    if 0 <= round_index < len(tournament.rounds):
+                        round_obj = tournament.rounds[round_index]
+                        match_view = MatchView()
+                        for match in round_obj.matches:
+                            scores = match_view.ask_match_result(match.players)
+                            match.set_scores(scores)
+                        print(f"Results recorded for {round_obj.name}.")
+                    else:
+                        print("Invalid round number.")
+                except ValueError:
+                    print("Please enter a valid number.")
+                continue
+                print("To be implemented")
+            elif choice == "5":
+                # Show standings
+                print("To be implemented")
+                
             elif choice == "0":
                 break
 
@@ -95,8 +155,10 @@ class TournamentController:
         if any(((p.get("national_id") if isinstance(p, dict) else getattr(p, "national_id", None) if hasattr(p, "national_id") else str(p)) == player.national_id) for p in self.tournament.players):
             print("Player already registered in this tournament.")
             return
+        if player is str:
+            print("Invalid player format.")
+            return
         self.tournament.players.append(player)
-        #self.tournament.save_to_json()
         self.save_tournament(self.tournament.name)
 
         print(f"Player {player.first_name} {player.last_name} added to tournament '{self.tournament.name}'.")
@@ -129,7 +191,7 @@ class TournamentController:
         """Add a round to the tournament"""
         self.tournament.add_round(round_obj)
     
-    def generate_round_and_pairs(players):
+    def generate_round_and_pairs(self, players):
         pairs = []
         player_list = players.copy()
         total_players = len(player_list)
@@ -147,21 +209,54 @@ class TournamentController:
                     round_pairs.append((p1, p2))
             pairs.append(round_pairs)
             player_list.insert(1, player_list.pop())
+        self.save_tournament(self.tournament.name)
         return pairs
+
+    def _to_player_obj(self, p):
+        """Normalize a stored player entry into a Player object or None (for bye)."""
+        # Already a Player
+        if isinstance(p, Player):
+            return p
+        # Dict saved in JSON -> construct Player
+        if isinstance(p, dict):
+            try:
+                return Player(**p)
+            except TypeError:
+                return None
+        # Stored as national_id string -> lookup in available players
+        if isinstance(p, str):
+            all_players = self.all_players or self.player_manager.get_all_players()
+            return next((pl for pl in all_players if pl.national_id == p), None)
+        # None or unknown -> treat as bye
+        return None
 
     def create_rounds_from_pairs(self, tournament):
         if self.rounds_generated is True:
-            print("Rounds have already been generated.")
+            return
         self.rounds_generated = True
-        all_pairs = self.generate_round_and_pairs(tournament.players)
+
+        # Normalize tournament.players into Player objects (or None for bye)
+        players = [self._to_player_obj(p) for p in tournament.players]
+
+        # If no players or insufficient players
+        if not players:
+            print("No players available to generate rounds.")
+            return
+
+        all_pairs = self.generate_round_and_pairs(players)
         for i, round_pairs in enumerate(all_pairs, start=1):
+            tournament.number_of_rounds = i
             round_name = f"Round {i}"
             new_round = Round(name=round_name)
             for player1, player2 in round_pairs:
-                # Create Match object with initial scores set to 0
-                match = Match(([player1, 0.0], [player2, 0.0]))
+                # player1/player2 are already Player objects or None
+                if player1 is None or player2 is None:
+                    # Skip matches with a bye (or handle as desired)
+                    continue
+                match = Match(player1, player2)
                 new_round.add_match(match)
             tournament.rounds.append(new_round)
+        self.save_tournament(self.tournament.name)
         print(f"{len(tournament.rounds)} rounds successfully created.\n")
     
     def current_round(self):
@@ -188,26 +283,72 @@ class TournamentController:
                             tournament_data = json.load(f)
                             if isinstance(tournament_data, list):
                                 print("Tournament data is a list, expected a dict. Skipping.")
-                                #To DO- Transform list to dict
-                            elif isinstance(tournament_data, dict):
-                                tournament = Tournament(
+                                continue
+                            tournament = Tournament(
                                     name=tournament_data["name"],
                                     location=tournament_data["location"],
                                     start_date=tournament_data["start_date"],
                                     end_date=tournament_data.get("end_date", None),
-                                    number_of_rounds=tournament_data.get("number_of_rounds", 4),
+                                    number_of_rounds=tournament_data["number_of_rounds"],
                                     description=tournament_data.get("description", "")
                                 )
-                                tournament.status = tournament_data.get("status")
-                                tournament.current_round = tournament_data.get("current_round", 0)
-                                tournament.players = tournament_data.get("players", [])
-                                tournament.rounds = tournament_data.get("rounds", [])
-                                loaded_tournaments.append(tournament)    
-                                                      
-                        except json.JSONDecodeError:
-                            print(f"Error reading file {filename}")
-                            
-            return loaded_tournaments
+                            tournament.status = tournament_data.get("status")
+                            tournament.current_round = tournament_data.get("current_round", 0)
+                            loaded_tournaments.append(tournament) 
+                            players_data = tournament_data.get("players", [])
+                            tournament.players = []
+                            for p in players_data:
+                                if isinstance(p, dict):
+                                    player_obj = Player(
+                                        first_name=p["first_name"],
+                                        last_name=p["last_name"],
+                                        birth_date=p["birth_date"],
+                                        national_id=p["national_id"],
+                                        ranking=p.get("ranking", 1000)
+                                    )
+                                    tournament.players.append(player_obj)
+                                elif isinstance(p, str):
+                                    all_players = self.player_manager.get_all_players()
+                                    found = next((pl for pl in all_players if pl.national_id == p), None)
+                                    if found:
+                                        tournament.players.append(found)
+                                else:
+                                    print(f"Unknown player format: {p}")
+                                    continue
+                                tournament.rounds = []
+                            for round_data in tournament_data.get("rounds", []):
+                                if not isinstance(round_data, dict):
+                                    continue
+                                round_obj = Round(name=round_data["name"])
+                                round_obj.start_date = round_data.get("start_date")
+                                round_obj.end_date = round_data.get("end_date")
+                                round_obj.status = round_data.get("status", "ongoing")
+                                for match_data in round_data.get("matches", []):
+                                    p1 = None
+                                    p2 = None
+
+                                    if isinstance(match_data.get("player1"), str):
+                                        p1 = next((pl for pl in tournament.players if pl.national_id == match_data["player1"]), None)
+                                    elif isinstance(match_data.get("player1"), dict):
+                                        p1 = Player(**match_data["player1"])
+
+                                    if isinstance(match_data.get("player2"), str):
+                                        p2 = next((pl for pl in tournament.players if pl.national_id == match_data["player2"]), None)
+                                    elif isinstance(match_data.get("player2"), dict):
+                                        p2 = Player(**match_data["player2"])
+
+                                    if p1 and p2:
+                                        match_obj = Match(
+                                            player1=p1,
+                                            player2=p2,
+                                            score1=match_data.get("score1", 0.0),
+                                            score2=match_data.get("score2", 0.0)
+                                        )
+                                        round_obj.add_match(match_obj)
+                        except Exception as e:
+                            print(f"Error reading file {filename}: {e}")
+
+        return loaded_tournaments
 
     def show_all_tournaments(self, tournaments):
         """Display the given list of tournaments using the view"""

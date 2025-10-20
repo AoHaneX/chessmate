@@ -3,11 +3,10 @@ import json
 
 
 class Match:
-    def __init__(self, player1, player2, tournament, score1=0.0, score2=0.0):
+    def __init__(self, player1, player2, score1=0.0, score2=0.0):
         """Represents a chess match between two players."""
         self.player1 = player1
         self.player2 = player2
-        self.tournament = tournament
         self.score1 = score1
         self.score2 = score2
 

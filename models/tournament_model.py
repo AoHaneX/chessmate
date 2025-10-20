@@ -1,5 +1,4 @@
 import json
-import os
 
 
 class Tournament:
@@ -29,7 +28,24 @@ class Tournament:
         self.players = players if players is not None else []
 
     def to_dict(self):
-        """Convert tournament object to dict"""
+        """Return a JSON-serializable dict including rounds (each round uses Round.to_dict())."""
+        players_serialized = []
+        for p in self.players:
+            if isinstance(p, str):
+                players_serialized.append(p)
+            elif isinstance(p, dict):
+                players_serialized.append(p.get("national_id", p))
+            else:
+                players_serialized.append(getattr(p, "national_id", str(p)))
+
+        # Serialize rounds using Round.to_dict() when available
+        rounds_serialized = []
+        for r in self.rounds:
+            try:
+                rounds_serialized.append(r.to_dict())
+            except Exception:
+                rounds_serialized.append(r)  # fallback: si c'est déjà dict ou une structure simple
+
         return {
             "name": self.name,
             "location": self.location,
@@ -37,28 +53,15 @@ class Tournament:
             "end_date": self.end_date,
             "number_of_rounds": self.number_of_rounds,
             "current_round": self.current_round,
-            "rounds": [round_obj.to_dict() for round_obj in self.rounds],
-            "players": [p.national_id for p in self.players],
+            "rounds": rounds_serialized,
+            "players": players_serialized,
             "description": self.description,
             "status": self.status,
         }
-       
+
     def save_to_json(self):
-        """Save tournament data to a JSON file"""
-        file_path = self._get_tournament_path()
+        """Write the tournament (including rounds) to disk as JSON."""
+        file_path = f"./data/tournaments/tournament_{self.name}_.json"
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        tournament_data = {
-            "name": self.name,
-            "location": self.location,
-            "start_date": self.start_date,
-            "end_date": self.end_date,
-            "number_of_rounds": self.number_of_rounds,
-            "current_round": self.current_round,
-            "rounds": ([round_obj.to_dict() for round_obj in self.rounds] if hasattr(self, 'rounds') and self.rounds else []),
-            "players": [p.national_id for p in self.players] if hasattr(self, 'players') and self.players else [],
-            "description": self.description,
-            "status": self.status
-        }
-        with open(file_path, 'w', encoding="utf-8") as json_file:
-            json.dump(tournament_data, json_file, indent=4, ensure_ascii=False)
-        return file_path
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, ensure_ascii=False, indent=4)

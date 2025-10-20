@@ -21,8 +21,18 @@ class TournamentView:
         print("0. Back to tournament menu")
         return input("Your choice: ")
 
+    def ask_round_management_choice(self):
+        """Display the round and match management menu."""
+        print("\n--- Round & Match Management ---")
+        print("1. Generate rounds and matches")
+        print("2. Show all rounds")
+        print("3. Show matches for a round")
+        print("4. Enter match results")
+        print("5. Show current standings")
+        print("0. Back")
+        return input("Your choice: ")
+
     def display_tournament_simplified(self, tournament):
-        #print(f"{tournament.name} ({tournament.status})")
         return f"{tournament.name} ({tournament.status})"
 
     def display_players(self, tournament, players=None):
@@ -33,6 +43,18 @@ class TournamentView:
             print(f"{i}. {player.first_name} {player.last_name} "
                   f"(National ID: {player.national_id}, Ranking: {player.ranking})")
         print("-------------------------\n")
+    
+    def display_matches(self, round_obj):
+        """Display all matches in a round."""
+        print(f"\n--- Matches for {round_obj.name} ---")
+        for match in round_obj.matches:
+            player1 = match.player1
+            player2 = match.player2
+            score1 = match.score1
+            score2 = match.score2
+            print("\n=== Match Information ===")
+            print(f"{player1.first_name} {player1.last_name} ({score1})  vs  {player2.first_name} {player2.last_name} ({score2})")
+            print("================================\n")
 
     def display_rounds(self, tournament):
         print("\n=== Tournament Rounds ===")
@@ -103,14 +125,6 @@ class RoundView:
 
 class MatchView:
     """View for the Match model (console output)"""
-
-    def display_match(self, match):
-        player1, score1 = match[0]
-        player2, score2 = match[1]
-        print("\n=== Match Information ===")
-        print(f"{player1.first_name} {player1.last_name} ({score1}) "
-              f"vs {player2.first_name} {player2.last_name} ({score2})")
-        print("================================\n")
 
     def ask_match_result(self, match):
         player1, _ = match[0]
