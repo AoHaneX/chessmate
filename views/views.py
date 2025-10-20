@@ -13,7 +13,14 @@ class TournamentView:
             print(f"Registered players : {len(tournament.players)}")
         print(f"Description      : {tournament.description}")
         print("================================\n")
-        
+
+    def manage_player(self, tournament):
+        print("\n=== Player Management ===")
+        print("1. Register a player")
+        print("2. Show registered players")
+        print("0. Back to tournament menu")
+        return input("Your choice: ")
+
     def display_tournament_simplified(self, tournament):
         #print(f"{tournament.name} ({tournament.status})")
         return f"{tournament.name} ({tournament.status})"
@@ -41,7 +48,7 @@ class TournamentView:
         print(f"\n=== Managing Tournament: {tournament.name} ===")
         print("1. Show tournament info")
         print("2. Manage players")
-        print("3. Show players (by score)")
+        print("3. Show tournament players")
         print("4. Manage rounds - To be implemented")
         print("0. Back to main menu")
 
@@ -132,6 +139,7 @@ class MatchView:
         print(f"{player2.first_name} {player2.last_name}: {score2} point(s)")
         print("---------------------\n")
 
+
 class PlayerView:
 
     def display_player(self, player):
@@ -148,7 +156,7 @@ class PlayerView:
             print(f"{i}. {player.first_name} {player.last_name} "
                   f"(National ID: {player.national_id}, Ranking: {player.ranking})")
         print("------------------------------------------------\n")
-
+    
     def ask_first_name(self):
         return input("Enter the player's first name: ")
 

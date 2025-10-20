@@ -1,5 +1,5 @@
 from models import tournament_model
-from views.views import TournamentView
+from views.views import TournamentView, PlayerView
 from models.tournament_model import Tournament
 from models.player_model import Player
 from utils.json_manager import update_jsons, get_data_from_file
@@ -45,8 +45,8 @@ class TournamentController:
                 self.manage_players(tournament)
 
             elif choice == "3":
-                # Show players by score
-                self.show_players(tournament, by_score=True)
+                # Show players by alphabetical order
+                self.show_players(tournament=self.tournament)
                 
             elif choice == "4":
                 # Manage rounds
@@ -61,12 +61,7 @@ class TournamentController:
 
     def manage_players(self, tournament):
         while True:
-            print("\n--- Player Management ---")
-            print("1. Add player to tournament")
-            print("2. Show tournament players")
-            print("0. Back")
-
-            choice = input("Your choice: ")
+            choice = self.view.manage_player(tournament)
 
             if choice == "1":
                 self.register_player()
@@ -106,7 +101,7 @@ class TournamentController:
         """Display basic tournament info"""
         self.view.display_tournament(tournament)
 
-    def show_players(self, tournament, by_score=False):
+    def show_players(self, tournament):
         """
         Display tournament players
         """
@@ -117,7 +112,6 @@ class TournamentController:
             if hasattr(p, "last_name"):
                 player_object.append(p)
             elif isinstance(p, dict):
-                # Adapter selon la signature de Player
                 player_object.append(Player(**p))
             else:
                 found = next((pl for pl in all_players if pl.national_id == str(p)), None)
@@ -125,14 +119,36 @@ class TournamentController:
                     player_object.append(found)
                 else:
                     print(f"Unknown player format: {p}")
-        if by_score:
-            self.view.display_players_by_score(tournament, players=player_object)
-        else:
             self.view.display_players(tournament, players=player_object)
 
     def add_round(self, round_obj):
         """Add a round to the tournament"""
         self.tournament.add_round(round_obj)
+
+    def generate_round_robin_pairs(self, tournament):
+        """
+        Generate all unique pairs of players for a round-robin tournament.
+        Returns:
+        list[list[tuple]]: List of rounds, each containing match pairs (player1, player2).
+        """
+        pairs = []
+        all_players = self.all_players or self.player_manager.get_all_players()
+        num_players = len(all_players)
+
+        # Add a bye (None) if the number of players is odd
+        if num_players % 2 != 0:
+            all_players.append(None)
+            num_players += 1
+        for i in range(num_players - 1):
+            round_pairs = []
+            for j in range(num_players // 2):
+                p1 = all_players[j]
+                p2 = all_players[-j - 1]
+                if p1 is not None and p2 is not None:
+                    round_pairs.append((p1, p2))
+            pairs.append(round_pairs)
+            all_players.insert(1, all_players.pop())
+        return pairs
 
     def current_round(self):
         """Return the current round object, or None if none exists"""

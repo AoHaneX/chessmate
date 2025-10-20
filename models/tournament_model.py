@@ -42,7 +42,7 @@ class Tournament:
             "description": self.description,
             "status": self.status,
         }
-       #Maybe change where it is
+       
     def save_to_json(self):
         """Save tournament data to a JSON file"""
         file_path = self._get_tournament_path()
