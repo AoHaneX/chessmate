@@ -11,10 +11,8 @@ class Match:
         self.score2 = score2
 
     def set_result(self, score1, score2):
-        self.score1 = score1
-        self.score2 = score2
-        self.tournament.update_score(self.player1, score1)
-        self.tournament.update_score(self.player2, score2)
+        self.score1 = float(score1)
+        self.score2 = float(score2)
 
     def __str__(self):
         return (f"{self.player1.first_name} {self.player1.last_name} ({self.score1}) "

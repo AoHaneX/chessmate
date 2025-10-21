@@ -7,8 +7,6 @@ class TournamentView:
         print(f"Location         : {tournament.location}")
         print(f"Start date       : {tournament.start_date}")
         print(f"End date         : {tournament.end_date}")
-        print(f"Number of rounds : {tournament.number_of_rounds}")
-        print(f"Current round    : {tournament.current_round}")
         if tournament.players is not None:
             print(f"Registered players : {len(tournament.players)}")
         print(f"Description      : {tournament.description}")
@@ -58,11 +56,22 @@ class TournamentView:
 
     def display_rounds(self, tournament):
         print("\n=== Tournament Rounds ===")
+        if not tournament.rounds:
+            print("No rounds available yet.")
+            print("==========================\n")
+            return
         for i, round_obj in enumerate(tournament.rounds, start=1):
-            print(f"Round {i} : {round_obj.name} "
-                  f"| Status: {round_obj.status} "
-                  f"| Start: {round_obj.start_date} "
-                  f"| End: {round_obj.end_date if round_obj.end_date else 'ongoing'}")
+            if isinstance(round_obj, dict):
+                name = round_obj.get("name", "Unknown")
+                status = round_obj.get("status", "unknown")
+                start_date = round_obj.get("start_date", "N/A")
+                end_date = round_obj.get("end_date") or "ongoing"
+            else:
+                name = round_obj.name
+                status = round_obj.status
+                start_date = round_obj.start_date
+                end_date = round_obj.end_date or "ongoing"
+            print(f"Round {i} : {name} | Status: {status} | Start: {start_date} | End: {end_date}")
         print("==========================\n")
     
     def display_management_menu(self, tournament):
@@ -71,7 +80,7 @@ class TournamentView:
         print("1. Show tournament info")
         print("2. Manage players")
         print("3. Show tournament players")
-        print("4. Manage rounds - To be implemented")
+        print("4. Manage rounds")
         print("0. Back to main menu")
 
     def ask_management_choice(self):
@@ -91,9 +100,6 @@ class TournamentView:
 
     def ask_description(self):
         return input("Enter a description for the tournament: ")
-    
-    def ask_round(self):
-        return input("Enter the number of rounds for the tournament: ")
 
 
 class RoundView:
@@ -109,7 +115,28 @@ class RoundView:
 
     def display_matches(self, round_obj):
         print(f"\n--- Matches for {round_obj.name} ---")
-        if not round_obj.matches:
+        print(f"\n--- Matches for {round_obj.get('name') if isinstance(round_obj, dict) else round_obj.name} ---")
+        matches = round_obj.get("matches") if isinstance(round_obj, dict) else round_obj.matches
+        if not matches:
+            print("No matches available yet.")
+            print("-----------------------------\n")
+            return
+
+        for i, match in enumerate(matches, start=1):
+            if isinstance(match, dict):
+                p1 = match.get("player1", "Unknown")
+                p2 = match.get("player2", "Unknown")
+                s1 = match.get("score1", 0.0)
+                s2 = match.get("score2", 0.0)
+                print(f"{i}. {p1} ({s1}) vs {p2} ({s2})")
+            else:
+                p1 = match.player1
+                p2 = match.player2
+                print(f"{i}. {p1.first_name} {p1.last_name} ({match.score1}) vs "
+                    f"{p2.first_name} {p2.last_name} ({match.score2})")
+
+        print("-----------------------------\n")
+        """if not round_obj.matches:
             print("No matches scheduled yet.")
         else:
             for i, match in enumerate(round_obj.matches, start=1):
@@ -117,7 +144,7 @@ class RoundView:
                 player2, score2 = match[1]
                 print(f"{i}. {player1.first_name} {player1.last_name} ({score1}) "
                       f"vs {player2.first_name} {player2.last_name} ({score2})")
-        print("--------------------------------------\n")
+        print("--------------------------------------\n")"""
 
     def ask_round_name(self):
         return input("Enter the round name (e.g., 'Round 1'): ")

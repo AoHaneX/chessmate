@@ -1,5 +1,5 @@
 import random
-from re import Match
+from re import Match, match
 from models import tournament_model
 from models.round_model import Round
 from views.views import MatchView, TournamentView, PlayerView
@@ -28,9 +28,8 @@ class TournamentController:
         start_date = self.view.ask_start_date()
         end_date = self.view.ask_end_date()
         description = self.view.ask_description()
-        rounds = self.view.ask_round()
         status = "Not Started"
-        new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description, rounds, status)
+        new_tournament = tournament_model.Tournament(name, location, start_date, end_date, description, status)
         new_tournament.save_to_json()
         return new_tournament
 
@@ -112,23 +111,9 @@ class TournamentController:
                 
             elif choice == "4":
                 # Record results for a round
-                if not tournament.rounds:
-                    print("No rounds available yet.")
-                try:
-                    round_index = int(input("Enter the round number to record results for: ")) - 1
-                    if 0 <= round_index < len(tournament.rounds):
-                        round_obj = tournament.rounds[round_index]
-                        match_view = MatchView()
-                        for match in round_obj.matches:
-                            scores = match_view.ask_match_result(match.players)
-                            match.set_scores(scores)
-                        print(f"Results recorded for {round_obj.name}.")
-                    else:
-                        print("Invalid round number.")
-                except ValueError:
-                    print("Please enter a valid number.")
-                continue
-                print("To be implemented")
+                self.enter_match_results(tournament)
+                self.save_tournament(self.tournament.name)
+
             elif choice == "5":
                 # Show standings
                 print("To be implemented")
@@ -259,94 +244,110 @@ class TournamentController:
         self.save_tournament(self.tournament.name)
         print(f"{len(tournament.rounds)} rounds successfully created.\n")
     
-    def current_round(self):
-        """Return the current round object, or None if none exists"""
-        if self.tournament.rounds:
-            return self.tournament.rounds[-1]
-        return None
-
     def is_finished(self):
         """Check if the tournament is finished"""
         return self.tournament.is_finished()
 
     def get_all_tournaments(self):
-        """Load all tournaments from JSON files and return them"""
+        """Load all tournaments from JSON files, rebuild objects, and return them."""
         folder_path = "./data/tournaments/"
         loaded_tournaments = []
 
-        if os.path.exists(folder_path):
-            for filename in os.listdir(folder_path):
-                if filename.endswith(".json"):
-                    file_path = os.path.join(folder_path, filename)
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        try:
-                            tournament_data = json.load(f)
-                            if isinstance(tournament_data, list):
-                                print("Tournament data is a list, expected a dict. Skipping.")
-                                continue
-                            tournament = Tournament(
-                                    name=tournament_data["name"],
-                                    location=tournament_data["location"],
-                                    start_date=tournament_data["start_date"],
-                                    end_date=tournament_data.get("end_date", None),
-                                    number_of_rounds=tournament_data["number_of_rounds"],
-                                    description=tournament_data.get("description", "")
-                                )
-                            tournament.status = tournament_data.get("status")
-                            tournament.current_round = tournament_data.get("current_round", 0)
-                            loaded_tournaments.append(tournament) 
-                            players_data = tournament_data.get("players", [])
-                            tournament.players = []
-                            for p in players_data:
-                                if isinstance(p, dict):
-                                    player_obj = Player(
-                                        first_name=p["first_name"],
-                                        last_name=p["last_name"],
-                                        birth_date=p["birth_date"],
-                                        national_id=p["national_id"],
-                                        ranking=p.get("ranking", 1000)
-                                    )
-                                    tournament.players.append(player_obj)
-                                elif isinstance(p, str):
-                                    all_players = self.player_manager.get_all_players()
-                                    found = next((pl for pl in all_players if pl.national_id == p), None)
-                                    if found:
-                                        tournament.players.append(found)
-                                else:
-                                    print(f"Unknown player format: {p}")
-                                    continue
-                                tournament.rounds = []
-                            for round_data in tournament_data.get("rounds", []):
-                                if not isinstance(round_data, dict):
-                                    continue
-                                round_obj = Round(name=round_data["name"])
-                                round_obj.start_date = round_data.get("start_date")
-                                round_obj.end_date = round_data.get("end_date")
-                                round_obj.status = round_data.get("status", "ongoing")
-                                for match_data in round_data.get("matches", []):
-                                    p1 = None
-                                    p2 = None
+        if not os.path.exists(folder_path):
+            return loaded_tournaments
 
-                                    if isinstance(match_data.get("player1"), str):
-                                        p1 = next((pl for pl in tournament.players if pl.national_id == match_data["player1"]), None)
-                                    elif isinstance(match_data.get("player1"), dict):
-                                        p1 = Player(**match_data["player1"])
+        for filename in os.listdir(folder_path):
+            if not filename.endswith(".json"):
+                continue
 
-                                    if isinstance(match_data.get("player2"), str):
-                                        p2 = next((pl for pl in tournament.players if pl.national_id == match_data["player2"]), None)
-                                    elif isinstance(match_data.get("player2"), dict):
-                                        p2 = Player(**match_data["player2"])
+            file_path = os.path.join(folder_path, filename)
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    tournament_data = json.load(f)
 
-                                    if p1 and p2:
-                                        match_obj = Match(
-                                            player1=p1,
-                                            player2=p2,
-                                            score1=match_data.get("score1", 0.0),
-                                            score2=match_data.get("score2", 0.0)
-                                        )
-                                        round_obj.add_match(match_obj)
-                        except Exception as e:
-                            print(f"Error reading file {filename}: {e}")
+                # Validate JSON structure
+                if not isinstance(tournament_data, dict):
+                    print(f"⚠ Tournament data in {filename} is not a dict. Skipped.")
+                    continue
+
+                # --- Create Tournament object ---
+                tournament = Tournament(
+                    name=tournament_data.get("name", "Unnamed"),
+                    location=tournament_data.get("location", "Unknown"),
+                    start_date=tournament_data.get("start_date", ""),
+                    end_date=tournament_data.get("end_date"),
+                    number_of_rounds=tournament_data.get("number_of_rounds", 0),
+                    description=tournament_data.get("description", ""),
+                    status=tournament_data.get("status", "Not started"),
+                    players=[],
+                )
+
+
+                # --- Rebuild player objects ---
+                players_data = tournament_data.get("players", [])
+                all_players = self.player_manager.get_all_players()
+                for p in players_data:
+                    if isinstance(p, dict):
+                        player_obj = Player(
+                            first_name=p["first_name"],
+                            last_name=p["last_name"],
+                            birth_date=p["birth_date"],
+                            national_id=p["national_id"],
+                            ranking=p.get("ranking", 1000)
+                        )
+                        tournament.players.append(player_obj)
+                    elif isinstance(p, str):
+                        found = next((pl for pl in all_players if pl.national_id == p), None)
+                        if found:
+                            tournament.players.append(found)
+                    else:
+                        print(f"⚠ Unknown player format: {p}")
+
+                # --- Rebuild round and match objects ---
+                tournament.rounds = []
+                for round_data in tournament_data.get("rounds", []):
+                    if not isinstance(round_data, dict):
+                        continue
+
+                    round_obj = Round(name=round_data.get("name", "Unnamed Round"))
+                    round_obj.start_date = round_data.get("start_date")
+                    round_obj.end_date = round_data.get("end_date")
+                    round_obj.status = round_data.get("status", "ongoing")
+
+                    # --- Rebuild matches for each round ---
+                    for match_data in round_data.get("matches", []):
+                        p1 = None
+                        p2 = None
+
+                        # Find player1
+                        if isinstance(match_data.get("player1"), str):
+                            p1 = next((pl for pl in tournament.players if pl.national_id == match_data["player1"]), None)
+                        elif isinstance(match_data.get("player1"), dict):
+                            p1 = Player(**match_data["player1"])
+
+                        # Find player2
+                        if isinstance(match_data.get("player2"), str):
+                            p2 = next((pl for pl in tournament.players if pl.national_id == match_data["player2"]), None)
+                        elif isinstance(match_data.get("player2"), dict):
+                            p2 = Player(**match_data["player2"])
+
+                        # Create match object if both players exist
+                        if p1 and p2:
+                            match_obj = Match(
+                                player1=p1,
+                                player2=p2,
+                                score1=match_data.get("score1", 0.0),
+                                score2=match_data.get("score2", 0.0)
+                            )
+                            round_obj.add_match(match_obj)
+
+                    tournament.rounds.append(round_obj)
+
+                # --- Add tournament to loaded list ---
+                loaded_tournaments.append(tournament)
+
+            except Exception as e:
+                print(f"Error reading file {filename}: {e}")
 
         return loaded_tournaments
 
@@ -366,3 +367,81 @@ class TournamentController:
     def save_tournament(self, name):
         file_path = self._get_tournament_path()
         update_jsons(file_path, self.tournament.to_dict())
+        
+    def enter_match_results(self, tournament):
+        """Allow user to select a round and a match, then enter and save the match result."""
+        from views.views import RoundView, MatchView
+        round_view = RoundView()
+        match_view = MatchView()
+        if not tournament.rounds:
+            print("No rounds available. Please generate rounds first.")
+            return
+        # Display available rounds
+        print("\n=== Available Rounds ===")
+        for i, rnd in enumerate(tournament.rounds, start=1):
+            print(f"{i}. {rnd.name} | Status: {rnd.status}")
+        print("========================")
+
+        try:
+            round_choice = int(input("Select a round number: "))
+            if round_choice < 1 or round_choice > len(tournament.rounds):
+                print("Invalid round number.")
+                return
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+            return
+
+        selected_round = tournament.rounds[round_choice - 1]
+
+        # Display matches of selected round
+        print(f"\n=== Matches in {selected_round.name} ===")
+        for i, match in enumerate(selected_round.list_matches, start=1):
+            print(f"{i}. {match.player1.first_name} {match.player1.last_name} "
+                f"vs {match.player2.first_name} {match.player2.last_name} "
+                f"({match.score1} - {match.score2})")
+        try:
+            match_choice = int(input("Select a match number: "))
+            if match_choice < 1 or match_choice > len(selected_round.list_matches):
+                print("Invalid match number.")
+                return
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+            return
+
+        selected_match = selected_round.list_matches[match_choice - 1]
+
+        # --- Ask for result input ---
+        print("\nEnter result (1-0, 0-1 or 0.5-0.5):")
+        result_str = input("> ").strip()
+
+        valid_results = {
+            "1-0": (1.0, 0.0),
+            "0-1": (0.0, 1.0),
+            "0.5-0.5": (0.5, 0.5),
+            "1/2-1/2": (0.5, 0.5)
+        }
+
+        if result_str not in valid_results:
+            print("Invalid format. Use 1-0, 0-1 or 0.5-0.5.")
+            return
+
+        score1, score2 = valid_results[result_str]
+
+        # --- Update match object ---
+        selected_match.set_result(score1, score2)
+
+        # --- Update players' scores ---
+        self.update_player_scores(selected_match)
+
+        # --- Save updated tournament ---
+        tournament.save_to_json()
+        print(f"Result saved for match: {selected_match.player1.last_name} vs {selected_match.player2.last_name}")
+        print("Tournament file has been updated.")
+
+
+    def update_player_scores(self, match):
+        """Update both players' total scores after a match."""
+        if hasattr(match.player1, "score"):
+            match.player1.score += match.score1
+        if hasattr(match.player2, "score"):
+            match.player2.score += match.score2
