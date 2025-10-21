@@ -101,7 +101,14 @@ class TournamentView:
     def ask_description(self):
         return input("Enter a description for the tournament: ")
 
-
+    def display_standings(self, players):
+        """Display players sorted by score and ranking."""
+        print("\n=== Current Standings ===")
+        for i, p in enumerate(players, start=1):
+            print(f"{i}. {p.first_name} {p.last_name} "
+                  f"(ID: {p.national_id}) | Score: {p.score} | Global Ranking: {p.ranking}")
+        print("==========================\n")
+        
 class RoundView:
 
     def display_round(self, round_obj):

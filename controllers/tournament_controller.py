@@ -86,7 +86,8 @@ class TournamentController:
                 # Generate rounds and matches
                 if self.rounds_generated:
                     print("Rounds have already been generated.")
-                self.create_rounds_from_pairs(tournament)
+                else:
+                    self.create_rounds_from_pairs(tournament)
                     
 
             elif choice == "2":
@@ -116,7 +117,7 @@ class TournamentController:
 
             elif choice == "5":
                 # Show standings
-                print("To be implemented")
+                self.show_current_standings(tournament)
                 
             elif choice == "0":
                 break
@@ -270,7 +271,7 @@ class TournamentController:
                     print(f"⚠ Tournament data in {filename} is not a dict. Skipped.")
                     continue
 
-                # --- Create Tournament object ---
+                # Create Tournament object
                 tournament = Tournament(
                     name=tournament_data.get("name", "Unnamed"),
                     location=tournament_data.get("location", "Unknown"),
@@ -283,7 +284,7 @@ class TournamentController:
                 )
 
 
-                # --- Rebuild player objects ---
+                # Rebuild player objects
                 players_data = tournament_data.get("players", [])
                 all_players = self.player_manager.get_all_players()
                 for p in players_data:
@@ -303,7 +304,7 @@ class TournamentController:
                     else:
                         print(f"⚠ Unknown player format: {p}")
 
-                # --- Rebuild round and match objects ---
+                # Rebuild round and match objects
                 tournament.rounds = []
                 for round_data in tournament_data.get("rounds", []):
                     if not isinstance(round_data, dict):
@@ -314,7 +315,7 @@ class TournamentController:
                     round_obj.end_date = round_data.get("end_date")
                     round_obj.status = round_data.get("status", "ongoing")
 
-                    # --- Rebuild matches for each round ---
+                    # Rebuild matches for each round
                     for match_data in round_data.get("matches", []):
                         p1 = None
                         p2 = None
@@ -343,7 +344,7 @@ class TournamentController:
 
                     tournament.rounds.append(round_obj)
 
-                # --- Add tournament to loaded list ---
+                # Add tournament to loaded list
                 loaded_tournaments.append(tournament)
 
             except Exception as e:
@@ -370,9 +371,7 @@ class TournamentController:
         
     def enter_match_results(self, tournament):
         """Allow user to select a round and a match, then enter and save the match result."""
-        from views.views import RoundView, MatchView
-        round_view = RoundView()
-        match_view = MatchView()
+        
         if not tournament.rounds:
             print("No rounds available. Please generate rounds first.")
             return
@@ -410,7 +409,7 @@ class TournamentController:
 
         selected_match = selected_round.list_matches[match_choice - 1]
 
-        # --- Ask for result input ---
+        # Ask for result input
         print("\nEnter result (1-0, 0-1 or 0.5-0.5):")
         result_str = input("> ").strip()
 
@@ -427,13 +426,13 @@ class TournamentController:
 
         score1, score2 = valid_results[result_str]
 
-        # --- Update match object ---
+        # Update match object
         selected_match.set_result(score1, score2)
 
-        # --- Update players' scores ---
+        # Update players' scores
         self.update_player_scores(selected_match)
 
-        # --- Save updated tournament ---
+        # Save updated tournament
         tournament.save_to_json()
         print(f"Result saved for match: {selected_match.player1.last_name} vs {selected_match.player2.last_name}")
         print("Tournament file has been updated.")
@@ -445,3 +444,16 @@ class TournamentController:
             match.player1.score += match.score1
         if hasattr(match.player2, "score"):
             match.player2.score += match.score2
+            
+    def show_current_standings(self, tournament):
+        """Display the current player standings sorted by score and ranking."""
+        if not tournament.players:
+            print("No players available in this tournament.")
+            return
+        view = TournamentView()
+        # Sort players by score (desc) then by ranking (desc)
+        sorted_players = sorted(
+            tournament.players,
+            key=lambda p: (-p.score, -p.ranking)
+        )
+        view.display_standings(sorted_players)
