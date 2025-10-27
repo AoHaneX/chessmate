@@ -114,9 +114,7 @@ the linting results and ensure the code is clean.
 ----------------------------------------
 📄 AUTHOR
 ----------------------------------------
+Developed as part of the OpenClassrooms "Développeur d'application Python"
 
-Developed as part of the OpenClassrooms Python Developer Path.
-Project: "Develop a Software Program in Python" (Chess Tournament).
-
-Author: [Your Name]
+Author: STALIN--RENAULT Adrian
 Year: 2025
