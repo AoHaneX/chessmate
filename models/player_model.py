@@ -1,6 +1,7 @@
 import os
 import json
 
+
 class Player:
     def __init__(self, first_name, last_name, birth_date, national_id, ranking=1000):
 
@@ -12,7 +13,12 @@ class Player:
         self.score = 0  # To do score accumulated in a tournament - Quand initialiser  il faut reset le score
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} (ID: {self.national_id}, Ranking: {self.ranking}, Score: {self.score})"
+        return (
+            f"{self.first_name} {self.last_name} "
+            f"(ID: {self.national_id}, "
+            f"Ranking: {self.ranking}, "
+            f"Score: {self.score})"
+        )
 
     def save_to_json(self):
         name = "player_" + self.last_name + "_" + self.first_name + ".json"
@@ -23,12 +29,12 @@ class Player:
             "last_name": self.last_name,
             "birth_date": self.birth_date,
             "national_id": self.national_id,
-             "ranking": self.ranking,
-             "score": self.score
+            "ranking": self.ranking,
+            "score": self.score
          }
         with open(file_path, 'w') as json_file:
             json.dump(player_data, json_file)
-    
+
     def to_dict(self):
         return {
             "first_name": self.first_name,

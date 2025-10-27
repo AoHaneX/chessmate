@@ -13,7 +13,8 @@ def update_jsons(file_path, data):
 
 def get_data_from_file(file_path):
     """
-    Load data from a JSON file and return it as a dict or list. Return an empty list if the file does not exist or is empty.
+    Load data from a JSON file and return it as a dict or list.
+    Return an empty list if the file does not exist or is empty.
     """
     if not os.path.exists(file_path):
         return []

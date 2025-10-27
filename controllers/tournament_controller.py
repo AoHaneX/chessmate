@@ -142,10 +142,17 @@ class TournamentController:
         if not player:
             print("Player not found")
             return
-        if any(((p.get("national_id") 
-                if isinstance(p, dict) 
-                else getattr(p, "national_id", None) 
-                if hasattr(p, "national_id") else str(p)) == player.national_id) for p in self.tournament.players):
+        if any(
+            (
+                (
+                    p.get("national_id")
+                    if isinstance(p, dict)
+                    else getattr(p, "national_id", None) if hasattr(p, "national_id")
+                    else str(p)
+                    )
+                == player.national_id
+                )
+                for p in self.tournament.players):
             print("Player already registered in this tournament.")
             return
         if player is str:
@@ -183,7 +190,7 @@ class TournamentController:
     def add_round(self, round_obj):
         """Add a round to the tournament"""
         self.tournament.add_round(round_obj)
-    
+
     def generate_round_and_pairs(self, players):
         pairs = []
         player_list = players.copy()
@@ -290,7 +297,6 @@ class TournamentController:
                     players=[],
                 )
 
-
                 # Rebuild player objects
                 players_data = tournament_data.get("players", [])
                 all_players = self.player_manager.get_all_players()
@@ -329,13 +335,17 @@ class TournamentController:
 
                         # Find player1
                         if isinstance(match_data.get("player1"), str):
-                            p1 = next((pl for pl in tournament.players if pl.national_id == match_data["player1"]), None)
+                            p1 = next(
+                                (pl for pl in tournament.players if pl.national_id == match_data["player1"]
+                                 ), None)
                         elif isinstance(match_data.get("player1"), dict):
                             p1 = Player(**match_data["player1"])
 
                         # Find player2
                         if isinstance(match_data.get("player2"), str):
-                            p2 = next((pl for pl in tournament.players if pl.national_id == match_data["player2"]), None)
+                            p2 = next(
+                                (pl for pl in tournament.players if pl.national_id == match_data["player2"]
+                                 ), None)
                         elif isinstance(match_data.get("player2"), dict):
                             p2 = Player(**match_data["player2"])
 
@@ -369,7 +379,7 @@ class TournamentController:
         """Display the given list of tournaments using the view"""
         print("======List of Tournaments======")
         for i, t in enumerate(tournaments, start=1):
-            simple = self.view.display_tournament_simplified(t)           
+            simple = self.view.display_tournament_simplified(t)
             print(f"{i}. {simple}")
 
     def save_tournament(self, name):
@@ -402,7 +412,8 @@ class TournamentController:
         # Display matches of selected round
         print(f"\n=== Matches in {selected_round.name} ===")
         for i, match in enumerate(selected_round.list_matches, start=1):
-            print(f"{i}. {match.player1.first_name} {match.player1.last_name} "
+            print(
+                f"{i}. {match.player1.first_name} {match.player1.last_name} "
                 f"vs {match.player2.first_name} {match.player2.last_name} "
                 f"({match.score1} - {match.score2})")
         try:
@@ -468,7 +479,7 @@ class TournamentController:
         """
         Start the tournament by updating its status and saving changes to JSON.
         """
-        tournament.status = "Started"
+        tournament.status = "In Progress"
         tournament.description = "The tournament has officially started."
         print(f"\nTournament '{tournament.name}' has been marked as Started.\n")
         try:
@@ -481,7 +492,7 @@ class TournamentController:
         """
         End the tournament by updating its status and saving changes to JSON.
         """
-        tournament.status = "Ended"
+        tournament.status = "Finished"
         tournament.description = "The tournament has officially ended."
         print(f"\nTournament '{tournament.name}' has been marked as Ended.\n")
         try:

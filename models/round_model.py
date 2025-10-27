@@ -20,7 +20,7 @@ class Round:
         """Mark the round as finished with current date and hour"""
         self.end_date = datetime.now().strftime("%d/%m/%Y %H:%M")
         self.status = "finished"
-        
+
     def finish_round(self, end_date):
         """Mark the round as finished with a precise date and hour(String format: DD/MM/YYYY HH:MM)"""
         self.end_date = end_date
@@ -45,9 +45,10 @@ class Round:
                 for match in self.list_matches
             ]
         }
-    #Not mean to use because each round is linked to a tournament
+
+    # Not mean to use because each round is linked to a tournament
     def save_to_json(self):
-        name="round_data" + self.name + "_" + str(self.start_date) + ".json"
+        name = "round_data" + self.name + "_" + str(self.start_date) + ".json"
         file_path = "./data/" + name
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         round_data = {

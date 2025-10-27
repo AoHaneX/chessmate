@@ -22,8 +22,6 @@ class Tournament:
         self.number_of_rounds = number_of_rounds
         self.rounds = []  # list of Round objects
         self.players = []  # list of Player objects
-        # To do- Vérifier où et comment gérer les scores
-        # Is finish or not
         self.description = description
         self.status = status  # "Not Started", "In Progress", "Finished"
         self.players = players if players is not None else []
@@ -78,7 +76,7 @@ class Tournament:
             ) for r in data.get("rounds", [])
         ]
         return tournament
-    
+
     def save_to_json(self):
         """Write the tournament (including rounds) to disk as JSON."""
         file_path = f"./data/tournaments/tournament_{self.name}_.json"

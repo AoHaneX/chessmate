@@ -19,7 +19,7 @@ class Match:
                 f"vs {self.player2.first_name} {self.player2.last_name} ({self.score2})")
 
     def save_to_json(self):
-        name="match_data" + self.player1.last_name + "_" + self.player2.last_name + ".json"
+        name = "match_data" + self.player1.last_name + "_" + self.player2.last_name + ".json"
         file_path = "./data/" + name
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         round_data = {
@@ -29,4 +29,4 @@ class Match:
                 "score2": self.score2
                 }
         with open(file_path, 'w') as json_file:
-            json.dump(round_data, json_file) 
+            json.dump(round_data, json_file)
