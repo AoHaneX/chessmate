@@ -27,6 +27,8 @@ class TournamentView:
         print("3. Show matches for a round")
         print("4. Enter match results")
         print("5. Show current standings")
+        print("6. Start tournament")
+        print("7. End tournament")
         print("0. Back")
         return input("Your choice: ")
 
@@ -73,7 +75,7 @@ class TournamentView:
                 end_date = round_obj.end_date or "ongoing"
             print(f"Round {i} : {name} | Status: {status} | Start: {start_date} | End: {end_date}")
         print("==========================\n")
-    
+
     def display_management_menu(self, tournament):
         """Show the tournament management menu"""
         print(f"\n=== Managing Tournament: {tournament.name} ===")
@@ -85,7 +87,7 @@ class TournamentView:
 
     def ask_management_choice(self):
         return input("Your choice: ")
-    
+
     def ask_tournament_name(self):
         return input("Enter the tournament name: ")
 
@@ -108,7 +110,8 @@ class TournamentView:
             print(f"{i}. {p.first_name} {p.last_name} "
                   f"(ID: {p.national_id}) | Score: {p.score} | Global Ranking: {p.ranking}")
         print("==========================\n")
-        
+
+
 class RoundView:
 
     def display_round(self, round_obj):
@@ -204,7 +207,7 @@ class PlayerView:
             print(f"{i}. {player.first_name} {player.last_name} "
                   f"(National ID: {player.national_id}, Ranking: {player.ranking})")
         print("------------------------------------------------\n")
-    
+
     def ask_first_name(self):
         return input("Enter the player's first name: ")
 

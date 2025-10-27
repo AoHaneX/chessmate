@@ -1,13 +1,11 @@
 import random
-from re import Match, match
 from models import tournament_model
 from models.round_model import Round
-from views.views import MatchView, TournamentView, PlayerView
+from views.views import TournamentView
 from models.tournament_model import Tournament
 from models.player_model import Player
 from models.match_model import Match
-from models.round_model import Round
-from utils.json_manager import update_jsons, get_data_from_file
+from utils.json_manager import update_jsons
 import os
 import json
 
@@ -34,7 +32,7 @@ class TournamentController:
         return new_tournament
 
     def _get_tournament_path(self):
-        #name = self.tournament.name.replace(" ", "_")
+        # name = self.tournament.name.replace(" ", "_")
         return f"./data/tournaments/tournament_{self.tournament.name}_.json"
 
     def manage_tournament(self, tournament):
@@ -53,7 +51,7 @@ class TournamentController:
             elif choice == "3":
                 # Show players by alphabetical order
                 self.show_players(tournament=self.tournament)
-                
+
             elif choice == "4":
                 # Manage rounds
                 self.manage_rounds(tournament)
@@ -77,7 +75,7 @@ class TournamentController:
 
             elif choice == "0":
                 break
-            
+
     def manage_rounds(self, tournament):
         while True:
             choice = self.view.ask_round_management_choice()
@@ -88,8 +86,6 @@ class TournamentController:
                     print("Rounds have already been generated.")
                 else:
                     self.create_rounds_from_pairs(tournament)
-                    
-
             elif choice == "2":
                 # Show all existing rounds
                 self.view.display_rounds(tournament)
@@ -109,7 +105,7 @@ class TournamentController:
                         print("Invalid round number.")
                 except ValueError:
                     print("Please enter a valid number.")
-                
+
             elif choice == "4":
                 # Record results for a round
                 self.enter_match_results(tournament)
@@ -118,7 +114,15 @@ class TournamentController:
             elif choice == "5":
                 # Show standings
                 self.show_current_standings(tournament)
-                
+
+            elif choice == "6":
+                # Start tournament
+                self.start_tournament(tournament)
+
+            elif choice == "7":
+                # End tournament
+                self.end_tournament(tournament)
+
             elif choice == "0":
                 break
 
@@ -138,7 +142,10 @@ class TournamentController:
         if not player:
             print("Player not found")
             return
-        if any(((p.get("national_id") if isinstance(p, dict) else getattr(p, "national_id", None) if hasattr(p, "national_id") else str(p)) == player.national_id) for p in self.tournament.players):
+        if any(((p.get("national_id") 
+                if isinstance(p, dict) 
+                else getattr(p, "national_id", None) 
+                if hasattr(p, "national_id") else str(p)) == player.national_id) for p in self.tournament.players):
             print("Player already registered in this tournament.")
             return
         if player is str:
@@ -157,7 +164,7 @@ class TournamentController:
         """
         Display tournament players
         """
-        #Convert dict to Player objects if necessary
+        # Convert dict to Player objects if necessary
         player_object = []
         all_players = self.all_players or self.player_manager.get_all_players()
         for p in tournament.players:
@@ -184,7 +191,7 @@ class TournamentController:
         if total_players % 2 != 0:
             player_list.append(None)
         random.shuffle(player_list)
-         # Generate one round per player (minus one)
+        # Generate one round per player (minus one)
         for i in range(total_players - 1):
             round_pairs = []
             for j in range(total_players // 2):
@@ -244,7 +251,7 @@ class TournamentController:
             tournament.rounds.append(new_round)
         self.save_tournament(self.tournament.name)
         print(f"{len(tournament.rounds)} rounds successfully created.\n")
-    
+
     def is_finished(self):
         """Check if the tournament is finished"""
         return self.tournament.is_finished()
@@ -368,10 +375,10 @@ class TournamentController:
     def save_tournament(self, name):
         file_path = self._get_tournament_path()
         update_jsons(file_path, self.tournament.to_dict())
-        
+
     def enter_match_results(self, tournament):
         """Allow user to select a round and a match, then enter and save the match result."""
-        
+
         if not tournament.rounds:
             print("No rounds available. Please generate rounds first.")
             return
@@ -437,14 +444,13 @@ class TournamentController:
         print(f"Result saved for match: {selected_match.player1.last_name} vs {selected_match.player2.last_name}")
         print("Tournament file has been updated.")
 
-
     def update_player_scores(self, match):
         """Update both players' total scores after a match."""
         if hasattr(match.player1, "score"):
             match.player1.score += match.score1
         if hasattr(match.player2, "score"):
             match.player2.score += match.score2
-            
+
     def show_current_standings(self, tournament):
         """Display the current player standings sorted by score and ranking."""
         if not tournament.players:
@@ -457,3 +463,29 @@ class TournamentController:
             key=lambda p: (-p.score, -p.ranking)
         )
         view.display_standings(sorted_players)
+
+    def start_tournament(self, tournament):
+        """
+        Start the tournament by updating its status and saving changes to JSON.
+        """
+        tournament.status = "Started"
+        tournament.description = "The tournament has officially started."
+        print(f"\nTournament '{tournament.name}' has been marked as Started.\n")
+        try:
+            self.save_tournament(tournament.name)
+            print("Tournament data successfully saved to JSON.\n")
+        except Exception as e:
+            print(f"Error while saving tournament data: {e}")
+
+    def end_tournament(self, tournament):
+        """
+        End the tournament by updating its status and saving changes to JSON.
+        """
+        tournament.status = "Ended"
+        tournament.description = "The tournament has officially ended."
+        print(f"\nTournament '{tournament.name}' has been marked as Ended.\n")
+        try:
+            self.save_tournament(tournament.name)
+            print("Tournament data successfully saved to JSON.\n")
+        except Exception as e:
+            print(f"Error while saving tournament data: {e}")
